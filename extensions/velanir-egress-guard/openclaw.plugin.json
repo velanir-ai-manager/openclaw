@@ -1,0 +1,77 @@
+{
+  "id": "velanir-egress-guard",
+  "activation": {
+    "onStartup": true
+  },
+  "name": "Velanir Egress Guard",
+  "description": "Revises natural final answers in context and strips protected runtime details from outbound messages.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "mode": {
+        "type": "string",
+        "enum": ["off", "shadow", "enforce"],
+        "default": "off"
+      },
+      "channels": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1 },
+        "uniqueItems": true,
+        "default": ["slack", "msteams"]
+      },
+      "finalOutput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["off", "when_needed", "always"],
+            "default": "when_needed"
+          },
+          "style": {
+            "type": "string",
+            "enum": ["plain", "friendly"],
+            "default": "friendly"
+          },
+          "maxEmojis": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "default": 1
+          },
+          "forbidEmDash": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      }
+    }
+  },
+  "uiHints": {
+    "mode": {
+      "label": "Mode",
+      "help": "off disables the guard, shadow records decisions without changing delivery, and enforce revises, sanitizes, or suppresses outbound text."
+    },
+    "channels": {
+      "label": "Protected Channels",
+      "help": "Channel ids whose outbound messages are evaluated. Defaults to Slack and Microsoft Teams."
+    },
+    "finalOutput.mode": {
+      "label": "Final Output Revision",
+      "help": "when_needed asks the active coworker model for one more pass only on risky drafts; always applies one bounded final wording pass."
+    },
+    "finalOutput.style": {
+      "label": "Final Output Style",
+      "help": "plain is concise and neutral; friendly allows restrained professional warmth."
+    },
+    "finalOutput.maxEmojis": {
+      "label": "Maximum Emojis",
+      "help": "Maximum emoji count in the delivered message."
+    },
+    "finalOutput.forbidEmDash": {
+      "label": "Avoid Em Dashes",
+      "help": "Replaces em dashes in final outbound text with simpler punctuation."
+    }
+  }
+}
