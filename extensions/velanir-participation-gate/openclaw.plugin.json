@@ -1,0 +1,195 @@
+{
+  "id": "velanir-participation-gate",
+  "activation": {
+    "onStartup": true
+  },
+  "name": "Velanir Participation Gate",
+  "description": "Decides whether a digital coworker should respond in group and channel conversations before the main agent runs.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "mode": {
+        "type": "string",
+        "enum": ["shadow", "enforce"],
+        "default": "shadow"
+      },
+      "classifier": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "provider": { "type": "string", "minLength": 1 },
+          "model": { "type": "string", "minLength": 1 },
+          "authProfileId": { "type": "string", "minLength": 1 },
+          "timeoutMs": { "type": "number", "minimum": 1, "default": 5000 },
+          "maxOutputTokens": { "type": "number", "minimum": 1, "default": 32 },
+          "threshold": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.7 }
+        }
+      },
+      "context": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["platform", "static"],
+            "default": "platform"
+          },
+          "maxMessages": { "type": "number", "minimum": 0, "default": 5 },
+          "refreshMs": { "type": "number", "minimum": 1, "default": 300000 }
+        }
+      },
+      "platform": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "authMode": {
+            "type": "string",
+            "enum": ["runtime", "static-token"],
+            "default": "runtime"
+          },
+          "baseUrl": { "type": "string", "minLength": 1 },
+          "coworkerId": { "type": "string", "minLength": 1 },
+          "token": { "type": "string", "minLength": 1 },
+          "endpointPath": { "type": "string", "minLength": 1 }
+        }
+      },
+      "staticContext": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "self": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "names"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "names": { "type": "array", "items": { "type": "string" } },
+              "roleSummary": { "type": "string" }
+            }
+          },
+          "coworkers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "names"],
+              "properties": {
+                "id": { "type": "string", "minLength": 1 },
+                "names": { "type": "array", "items": { "type": "string" } },
+                "roleSummary": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "delivery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["passthrough", "coalesce"],
+            "default": "passthrough"
+          },
+          "quietWindowMs": { "type": "number", "minimum": 0, "default": 45000 },
+          "maxProgressMessages": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 },
+          "progressText": {
+            "type": "string",
+            "minLength": 1,
+            "default": "Still working on this — I’ll send the result when it’s complete."
+          },
+          "turnTtlMs": { "type": "number", "minimum": 1, "default": 600000 }
+        }
+      },
+      "logging": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decisions": { "type": "boolean", "default": true },
+          "includeContent": { "type": "boolean", "default": false },
+          "classifierDebug": { "type": "boolean", "default": false }
+        }
+      }
+    }
+  },
+  "uiHints": {
+    "mode": {
+      "label": "Mode",
+      "help": "shadow logs decisions without suppressing replies; enforce suppresses skipped group/channel turns."
+    },
+    "classifier.provider": {
+      "label": "Classifier Provider",
+      "help": "Provider used for the lightweight binary participation decision."
+    },
+    "classifier.model": {
+      "label": "Classifier Model",
+      "help": "Model used for the lightweight binary participation decision. Platform-rendered configs use the coworker's configured OpenClaw model unless explicitly overridden."
+    },
+    "classifier.authProfileId": {
+      "label": "Classifier Auth Profile",
+      "help": "Optional OpenClaw auth profile id for the classifier model."
+    },
+    "classifier.timeoutMs": {
+      "label": "Classifier Timeout",
+      "help": "Maximum time to wait for the classifier before failing open."
+    },
+    "classifier.maxOutputTokens": {
+      "label": "Classifier Output Tokens",
+      "help": "Maximum classifier response tokens. This limits output only, not input context."
+    },
+    "classifier.threshold": {
+      "label": "Classifier Threshold",
+      "help": "Minimum score required for the coworker to participate in enforce mode."
+    },
+    "context.source": {
+      "label": "Context Source",
+      "help": "platform for production roster data; static for local development and tests."
+    },
+    "context.maxMessages": {
+      "label": "Recent Messages",
+      "help": "Number of recent group/channel messages included in classifier context."
+    },
+    "context.refreshMs": {
+      "label": "Context Refresh",
+      "help": "Cache duration for platform participation context."
+    },
+    "platform.authMode": {
+      "label": "Platform Auth Mode",
+      "help": "runtime uses the scoped runtime identity token flow. static-token is local/prototype only."
+    },
+    "platform.token": {
+      "label": "Platform Token",
+      "help": "Prototype-only static bearer token. Used only when platform.authMode is static-token.",
+      "sensitive": true
+    },
+    "logging.includeContent": {
+      "label": "Log Message Content",
+      "help": "Default off. Enable only for controlled debugging."
+    },
+    "logging.classifierDebug": {
+      "label": "Log Classifier Debug",
+      "help": "Default off. Emits structured classifier diagnostics; exact prompt/input/output still requires includeContent."
+    },
+    "delivery.mode": {
+      "label": "Delivery Mode",
+      "help": "coalesce withholds tool and progress narration for inbound turns and emits one final answer; passthrough preserves OpenClaw delivery."
+    },
+    "delivery.quietWindowMs": {
+      "label": "Delivery Quiet Window",
+      "help": "Milliseconds to keep an inbound turn silent before one bounded progress update may be delivered."
+    },
+    "delivery.maxProgressMessages": {
+      "label": "Maximum Progress Messages",
+      "help": "Maximum user-visible progress messages per inbound turn. Supported values are 0 or 1."
+    },
+    "delivery.progressText": {
+      "label": "Progress Message",
+      "help": "Generic text used for the single long-task progress update; model-authored tool narration is never exposed."
+    },
+    "delivery.turnTtlMs": {
+      "label": "Delivery Turn TTL",
+      "help": "Maximum lifetime for per-session delivery state and duplicate-final protection."
+    }
+  }
+}
