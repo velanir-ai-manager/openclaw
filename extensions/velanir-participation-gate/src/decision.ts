@@ -94,7 +94,14 @@ function decision(
     "shouldRespond" | "reason" | "source" | "latencyMs" | "error"
   >,
 ): ParticipationDecision {
-  const message = error instanceof Error ? error.message : error ? String(error) : undefined;
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : error
+          ? JSON.stringify(error)
+          : undefined;
   return {
     shouldRespond,
     reason,

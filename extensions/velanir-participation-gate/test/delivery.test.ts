@@ -27,7 +27,7 @@ function storeWithClock(overrides: Partial<DeliveryConfig> = {}) {
   );
   return {
     store,
-    advance(ms: number) {
+    advance: (ms: number) => {
       currentTime += ms;
     },
   };

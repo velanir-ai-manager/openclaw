@@ -109,7 +109,7 @@ function publicMessages(
   maxMessages: number,
 ): ConversationHistoryMessage[] {
   return messages
-    .sort((left, right) => left.sequence - right.sequence)
+    .toSorted((left, right) => left.sequence - right.sequence)
     .slice(-maxMessages)
     .map(({ sequence: _sequence, dedupeKey: _dedupeKey, ...message }) => message);
 }

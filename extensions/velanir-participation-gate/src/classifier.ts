@@ -31,7 +31,7 @@ function stableStringify(value: unknown): string {
   if (value && typeof value === "object") {
     const record = value as Record<string, unknown>;
     return `{${Object.keys(record)
-      .sort()
+      .toSorted()
       .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
       .join(",")}}`;
   }
@@ -68,7 +68,14 @@ function formatFact(name: string, value: unknown): string | undefined {
   if (value === undefined || value === null || value === "") {
     return undefined;
   }
-  return `- ${name}: ${String(value)}`;
+  const text =
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "bigint" ||
+    typeof value === "boolean"
+      ? String(value)
+      : JSON.stringify(value);
+  return text === undefined ? undefined : `- ${name}: ${text}`;
 }
 
 function buildConversationSection(input: ClassifierInput): string {
@@ -191,7 +198,8 @@ type ParsedClassifierDecision = {
 };
 
 function normalizeScore(value: unknown): number | undefined {
-  const score = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  const score =
+    typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
   if (!Number.isFinite(score) || score < 0 || score > 1) {
     return undefined;
   }

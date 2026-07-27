@@ -42,9 +42,13 @@ function stringValue(value: unknown): string | undefined {
 
 /** Extract the send candidate from a `message` tool call, if it is one. */
 function messageToolSend(event: BeforeToolCallEvent): DeliverySendCandidate | undefined {
-  if (event.toolName.trim().toLowerCase() !== "message") return undefined;
+  if (event.toolName.trim().toLowerCase() !== "message") {
+    return undefined;
+  }
   const action = stringValue(event.params.action)?.toLowerCase();
-  if (action !== "send") return undefined;
+  if (action !== "send") {
+    return undefined;
+  }
   return {
     provider: stringValue(event.params.provider) ?? stringValue(event.params.channel),
     target:
@@ -107,7 +111,9 @@ export default definePluginEntry({
     );
 
     const beginDeliveryTurn = (event: BeforeDispatchEvent, ctx: BeforeDispatchContext) => {
-      if (config.delivery.mode !== "coalesce") return;
+      if (config.delivery.mode !== "coalesce") {
+        return;
+      }
       const tracked = deliveries.beginTurn(
         deliveryScopeForInbound(event, ctx),
         deliveryRouteForInbound(event, ctx),
@@ -179,16 +185,22 @@ export default definePluginEntry({
     api.on(
       "before_tool_call",
       (event, ctx) => {
-        if (config.delivery.mode !== "coalesce") return undefined;
+        if (config.delivery.mode !== "coalesce") {
+          return undefined;
+        }
         const beforeToolCallEvent = event as BeforeToolCallEvent;
         const send = messageToolSend(beforeToolCallEvent);
-        if (!send) return undefined;
+        if (!send) {
+          return undefined;
+        }
         const beforeToolCallContext = ctx as BeforeToolCallContext;
         const blocked = deliveries.isSameConversationSend(
           deliveryScopeForTool(beforeToolCallContext),
           send,
         );
-        if (!blocked) return undefined;
+        if (!blocked) {
+          return undefined;
+        }
         runtimeApi.logger?.info?.(
           `[${PLUGIN_ID}-delivery] action=block_same_conversation_message_tool run=${
             beforeToolCallEvent.runId ?? beforeToolCallContext.runId ?? "unknown"
@@ -205,7 +217,9 @@ export default definePluginEntry({
     api.on(
       "message_sending",
       (event, ctx) => {
-        if (config.delivery.mode !== "coalesce") return undefined;
+        if (config.delivery.mode !== "coalesce") {
+          return undefined;
+        }
         const messageSendingEvent = event as MessageSendingEvent;
         const messageSendingContext = ctx as MessageSendingContext;
         const scope = deliveryScopeForMessage(messageSendingContext);
@@ -213,7 +227,9 @@ export default definePluginEntry({
           provider: messageSendingEvent.metadata?.channel,
           target: messageSendingContext.conversationId ?? messageSendingEvent.to,
         });
-        if (!sameConversation) return undefined;
+        if (!sameConversation) {
+          return undefined;
+        }
         if (deliveries.consumeFinalEgress(scope)) {
           runtimeApi.logger?.info?.(`[${PLUGIN_ID}-delivery] action=allow_final_message_egress`);
           return undefined;
@@ -257,7 +273,9 @@ export default definePluginEntry({
     api.on(
       "reply_payload_sending",
       (event, ctx) => {
-        if (config.delivery.mode !== "coalesce") return undefined;
+        if (config.delivery.mode !== "coalesce") {
+          return undefined;
+        }
         const decision = deliveries.decide(
           event as ReplyPayloadSendingEvent,
           ctx as ReplyPayloadSendingContext,

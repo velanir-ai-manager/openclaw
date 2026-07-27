@@ -11,6 +11,13 @@ type MessageSentHook = (event: unknown, ctx: unknown) => unknown;
 type ReplyPayloadSendingHook = (event: unknown, ctx: unknown) => unknown;
 type BeforeToolCallHook = (event: unknown, ctx: unknown) => unknown;
 type MessageSendingHook = (event: unknown, ctx: unknown) => unknown;
+type HookByName = {
+  before_dispatch: BeforeDispatchHook;
+  message_sent: MessageSentHook;
+  reply_payload_sending: ReplyPayloadSendingHook;
+  before_tool_call: BeforeToolCallHook;
+  message_sending: MessageSendingHook;
+};
 
 const PRE_EGRESS_DELIVERY_PRIORITY = 100_000;
 const POST_EGRESS_REPLY_CAPTURE_PRIORITY = -100_001;
@@ -47,12 +54,15 @@ function apiForMode(
 }
 
 function resetSharedDeliveryState() {
-  delete (globalThis as { __velanirParticipationGateDeliveryV1?: unknown })
-    .__velanirParticipationGateDeliveryV1;
+  delete (globalThis as Record<string, unknown>)["__velanirParticipationGateDeliveryV1"];
 }
 
 describe("plugin entry", () => {
-  function hookFor<T>(api: ReturnType<typeof apiForMode>, name: string, priority?: number): T {
+  function hookFor<TName extends keyof HookByName>(
+    api: ReturnType<typeof apiForMode>,
+    name: TName,
+    priority?: number,
+  ): HookByName[TName] {
     const handler = api.on.mock.calls.find(
       (call) =>
         call[0] === name &&
@@ -62,7 +72,7 @@ describe("plugin entry", () => {
     if (!handler) {
       throw new Error(`missing ${name} hook`);
     }
-    return handler as T;
+    return handler as HookByName[TName];
   }
 
   it("registers the before_dispatch, message_sent, and reply_payload_sending hooks", () => {
@@ -82,7 +92,7 @@ describe("plugin entry", () => {
   it("does not suppress skipped decisions in shadow mode", async () => {
     const api = apiForMode("shadow");
     plugin.register(api as unknown as PluginApiParam);
-    const handler = hookFor<BeforeDispatchHook>(api, "before_dispatch");
+    const handler = hookFor(api, "before_dispatch");
 
     await expect(
       handler(
@@ -95,7 +105,7 @@ describe("plugin entry", () => {
   it("bypasses the participation gate when the event was already mentioned", async () => {
     const api = apiForMode("enforce");
     plugin.register(api as unknown as PluginApiParam);
-    const handler = hookFor<BeforeDispatchHook>(api, "before_dispatch");
+    const handler = hookFor(api, "before_dispatch");
 
     await expect(
       handler(
@@ -113,7 +123,7 @@ describe("plugin entry", () => {
   it("bypasses the participation gate when the context was already mentioned", async () => {
     const api = apiForMode("enforce");
     plugin.register(api as unknown as PluginApiParam);
-    const handler = hookFor<BeforeDispatchHook>(api, "before_dispatch");
+    const handler = hookFor(api, "before_dispatch");
 
     await expect(
       handler(
@@ -131,7 +141,7 @@ describe("plugin entry", () => {
   it("suppresses skipped decisions in enforce mode", async () => {
     const api = apiForMode("enforce");
     plugin.register(api as unknown as PluginApiParam);
-    const handler = hookFor<BeforeDispatchHook>(api, "before_dispatch");
+    const handler = hookFor(api, "before_dispatch");
 
     await expect(
       handler(
@@ -144,8 +154,8 @@ describe("plugin entry", () => {
   it("keeps mentioned inbound and successful sent replies for later Teams classifier context", async () => {
     const api = apiForMode("enforce");
     plugin.register(api as unknown as PluginApiParam);
-    const beforeDispatch = hookFor<BeforeDispatchHook>(api, "before_dispatch");
-    const messageSent = hookFor<MessageSentHook>(api, "message_sent");
+    const beforeDispatch = hookFor(api, "before_dispatch");
+    const messageSent = hookFor(api, "message_sent");
 
     await beforeDispatch(
       {
@@ -193,8 +203,8 @@ describe("plugin entry", () => {
   it("records final reply payloads as assistant context for later Slack follow-ups", async () => {
     const api = apiForMode("enforce");
     plugin.register(api as unknown as PluginApiParam);
-    const beforeDispatch = hookFor<BeforeDispatchHook>(api, "before_dispatch");
-    const replyPayloadSending = hookFor<ReplyPayloadSendingHook>(
+    const beforeDispatch = hookFor(api, "before_dispatch");
+    const replyPayloadSending = hookFor(
       api,
       "reply_payload_sending",
       POST_EGRESS_REPLY_CAPTURE_PRIORITY,
@@ -266,9 +276,9 @@ describe("plugin entry", () => {
   it("dedupes reply payload and message_sent outbound history for the same final answer", async () => {
     const api = apiForMode("enforce");
     plugin.register(api as unknown as PluginApiParam);
-    const beforeDispatch = hookFor<BeforeDispatchHook>(api, "before_dispatch");
-    const messageSent = hookFor<MessageSentHook>(api, "message_sent");
-    const replyPayloadSending = hookFor<ReplyPayloadSendingHook>(
+    const beforeDispatch = hookFor(api, "before_dispatch");
+    const messageSent = hookFor(api, "message_sent");
+    const replyPayloadSending = hookFor(
       api,
       "reply_payload_sending",
       POST_EGRESS_REPLY_CAPTURE_PRIORITY,
@@ -362,7 +372,11 @@ describe("turn delivery coalescer hooks", () => {
     return api;
   }
 
-  function hookFor<T>(api: ReturnType<typeof apiForMode>, name: string, priority?: number): T {
+  function hookFor<TName extends keyof HookByName>(
+    api: ReturnType<typeof apiForMode>,
+    name: TName,
+    priority?: number,
+  ): HookByName[TName] {
     const handler = api.on.mock.calls.find(
       (call) =>
         call[0] === name &&
@@ -372,7 +386,7 @@ describe("turn delivery coalescer hooks", () => {
     if (!handler) {
       throw new Error(`missing ${name} hook`);
     }
-    return handler as T;
+    return handler as HookByName[TName];
   }
 
   function replyEvent(kind: "tool" | "block" | "final" | undefined, runId = "run-1") {
@@ -408,12 +422,8 @@ describe("turn delivery coalescer hooks", () => {
 
   it("suppresses non-final reply payloads for a tracked turn", async () => {
     const api = coalesceApi();
-    const beforeDispatch = hookFor<BeforeDispatchHook>(api, "before_dispatch");
-    const deliveryReply = hookFor<ReplyPayloadSendingHook>(
-      api,
-      "reply_payload_sending",
-      PRE_EGRESS_DELIVERY_PRIORITY,
-    );
+    const beforeDispatch = hookFor(api, "before_dispatch");
+    const deliveryReply = hookFor(api, "reply_payload_sending", PRE_EGRESS_DELIVERY_PRIORITY);
 
     await beforeDispatch(inboundEvent, inboundCtx);
 
@@ -429,12 +439,8 @@ describe("turn delivery coalescer hooks", () => {
 
   it("cancels progress narration when maxProgressMessages is 0, regardless of elapsed time", async () => {
     const api = coalesceApi({ maxProgressMessages: 0, quietWindowMs: 0 });
-    const beforeDispatch = hookFor<BeforeDispatchHook>(api, "before_dispatch");
-    const deliveryReply = hookFor<ReplyPayloadSendingHook>(
-      api,
-      "reply_payload_sending",
-      PRE_EGRESS_DELIVERY_PRIORITY,
-    );
+    const beforeDispatch = hookFor(api, "before_dispatch");
+    const deliveryReply = hookFor(api, "reply_payload_sending", PRE_EGRESS_DELIVERY_PRIORITY);
 
     await beforeDispatch(inboundEvent, inboundCtx);
 
@@ -446,12 +452,8 @@ describe("turn delivery coalescer hooks", () => {
 
   it("admits exactly one final and cancels duplicate finals", async () => {
     const api = coalesceApi();
-    const beforeDispatch = hookFor<BeforeDispatchHook>(api, "before_dispatch");
-    const deliveryReply = hookFor<ReplyPayloadSendingHook>(
-      api,
-      "reply_payload_sending",
-      PRE_EGRESS_DELIVERY_PRIORITY,
-    );
+    const beforeDispatch = hookFor(api, "before_dispatch");
+    const deliveryReply = hookFor(api, "reply_payload_sending", PRE_EGRESS_DELIVERY_PRIORITY);
 
     await beforeDispatch(inboundEvent, inboundCtx);
 
@@ -468,8 +470,8 @@ describe("turn delivery coalescer hooks", () => {
 
   it("blocks a message.send tool call targeting the active conversation before execution", async () => {
     const api = coalesceApi();
-    const beforeDispatch = hookFor<BeforeDispatchHook>(api, "before_dispatch");
-    const beforeToolCall = hookFor<BeforeToolCallHook>(api, "before_tool_call");
+    const beforeDispatch = hookFor(api, "before_dispatch");
+    const beforeToolCall = hookFor(api, "before_tool_call");
 
     await beforeDispatch(inboundEvent, inboundCtx);
 
@@ -497,8 +499,8 @@ describe("turn delivery coalescer hooks", () => {
 
   it("allows message.send to an unrelated destination and non-message tools", async () => {
     const api = coalesceApi();
-    const beforeDispatch = hookFor<BeforeDispatchHook>(api, "before_dispatch");
-    const beforeToolCall = hookFor<BeforeToolCallHook>(api, "before_tool_call");
+    const beforeDispatch = hookFor(api, "before_dispatch");
+    const beforeToolCall = hookFor(api, "before_tool_call");
 
     await beforeDispatch(inboundEvent, inboundCtx);
 
@@ -533,7 +535,7 @@ describe("turn delivery coalescer hooks", () => {
 
   it("allows a proactive message.send from a session with no tracked inbound turn", () => {
     const api = coalesceApi();
-    const beforeToolCall = hookFor<BeforeToolCallHook>(api, "before_tool_call");
+    const beforeToolCall = hookFor(api, "before_tool_call");
 
     expect(
       beforeToolCall(
@@ -548,13 +550,9 @@ describe("turn delivery coalescer hooks", () => {
 
   it("suppresses direct message egress for the active conversation unless it is the admitted final", async () => {
     const api = coalesceApi();
-    const beforeDispatch = hookFor<BeforeDispatchHook>(api, "before_dispatch");
-    const deliveryReply = hookFor<ReplyPayloadSendingHook>(
-      api,
-      "reply_payload_sending",
-      PRE_EGRESS_DELIVERY_PRIORITY,
-    );
-    const messageSending = hookFor<MessageSendingHook>(api, "message_sending");
+    const beforeDispatch = hookFor(api, "before_dispatch");
+    const deliveryReply = hookFor(api, "reply_payload_sending", PRE_EGRESS_DELIVERY_PRIORITY);
+    const messageSending = hookFor(api, "message_sending");
 
     await beforeDispatch(inboundEvent, inboundCtx);
 
@@ -582,8 +580,8 @@ describe("turn delivery coalescer hooks", () => {
 
   it("allows message egress to unrelated destinations while a turn is active", async () => {
     const api = coalesceApi();
-    const beforeDispatch = hookFor<BeforeDispatchHook>(api, "before_dispatch");
-    const messageSending = hookFor<MessageSendingHook>(api, "message_sending");
+    const beforeDispatch = hookFor(api, "before_dispatch");
+    const messageSending = hookFor(api, "message_sending");
 
     await beforeDispatch(inboundEvent, inboundCtx);
 
@@ -601,14 +599,10 @@ describe("turn delivery coalescer hooks", () => {
       delivery: { mode: "passthrough", maxProgressMessages: 0 },
     });
     plugin.register(api as unknown as PluginApiParam);
-    const beforeDispatch = hookFor<BeforeDispatchHook>(api, "before_dispatch");
-    const deliveryReply = hookFor<ReplyPayloadSendingHook>(
-      api,
-      "reply_payload_sending",
-      PRE_EGRESS_DELIVERY_PRIORITY,
-    );
-    const beforeToolCall = hookFor<BeforeToolCallHook>(api, "before_tool_call");
-    const messageSending = hookFor<MessageSendingHook>(api, "message_sending");
+    const beforeDispatch = hookFor(api, "before_dispatch");
+    const deliveryReply = hookFor(api, "reply_payload_sending", PRE_EGRESS_DELIVERY_PRIORITY);
+    const beforeToolCall = hookFor(api, "before_tool_call");
+    const messageSending = hookFor(api, "message_sending");
 
     await beforeDispatch(inboundEvent, inboundCtx);
 
@@ -639,12 +633,8 @@ describe("turn delivery coalescer hooks", () => {
       delivery: { mode: "coalesce", maxProgressMessages: 0 },
     });
     plugin.register(api as unknown as PluginApiParam);
-    const beforeDispatch = hookFor<BeforeDispatchHook>(api, "before_dispatch");
-    const deliveryReply = hookFor<ReplyPayloadSendingHook>(
-      api,
-      "reply_payload_sending",
-      PRE_EGRESS_DELIVERY_PRIORITY,
-    );
+    const beforeDispatch = hookFor(api, "before_dispatch");
+    const deliveryReply = hookFor(api, "reply_payload_sending", PRE_EGRESS_DELIVERY_PRIORITY);
 
     // Classifier score 0.2 < 0.7 threshold and not mentioned: turn is skipped.
     await expect(

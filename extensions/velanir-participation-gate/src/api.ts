@@ -15,7 +15,7 @@ export type OpenClawPluginApi = {
       | "message_sending"
       | "message_sent"
       | "reply_payload_sending",
-    handler: (event: unknown, ctx: unknown) => unknown | Promise<unknown>,
+    handler: (event: unknown, ctx: unknown) => unknown,
     options?: { priority?: number; timeoutMs?: number },
   ) => void;
 };

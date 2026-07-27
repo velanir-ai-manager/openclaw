@@ -44,6 +44,13 @@ function header(init: RequestInit | undefined, name: string): string {
   return value;
 }
 
+function requestBodyText(body: BodyInit | null | undefined): string {
+  if (typeof body !== "string") {
+    throw new Error("Expected a string request body.");
+  }
+  return body;
+}
+
 describe("runtime participation context auth", () => {
   afterEach(async () => {
     vi.restoreAllMocks();
@@ -53,7 +60,7 @@ describe("runtime participation context auth", () => {
   it("requests a scoped runtime token and signs DPoP headers for context reads", async () => {
     const env = await runtimeEnv();
     const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
-      const form = new URLSearchParams(String(init?.body));
+      const form = new URLSearchParams(requestBodyText(init?.body));
       expect(form.get("grant_type")).toBe("client_credentials");
       expect(form.get("client_id")).toBe(runtimeIdentityId);
       expect(form.get("client_assertion_type")).toBe(CLIENT_ASSERTION_TYPE);

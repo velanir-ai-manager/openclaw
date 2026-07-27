@@ -15,7 +15,16 @@ function field(name: string, value: unknown): string | undefined {
   if (value === undefined || value === null || value === "") {
     return undefined;
   }
-  return `${name}=${String(value)}`;
+  const text =
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "bigint" ||
+    typeof value === "boolean"
+      ? String(value)
+      : value instanceof Error
+        ? value.message
+        : JSON.stringify(value);
+  return text === undefined ? undefined : `${name}=${text}`;
 }
 
 function scoreField(value: number | undefined): string | undefined {
@@ -23,7 +32,7 @@ function scoreField(value: number | undefined): string | undefined {
 }
 
 function contentLoggingEnabled(config: ParticipationGateConfig): boolean {
-  return config.logging.includeContent === true;
+  return config.logging.includeContent;
 }
 
 export function logParticipationDecision(params: {

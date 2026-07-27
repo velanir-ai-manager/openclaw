@@ -33,19 +33,21 @@ export function createTurnDeliveryState(): TurnDeliveryState {
   };
 }
 
-type DeliveryStateGlobal = typeof globalThis & {
-  __velanirParticipationGateDeliveryV1?: TurnDeliveryState;
-};
-
 /**
  * OpenClaw can register plugin entry points more than once in a gateway
  * lifetime (for example a config reload). Delivery state must survive that so
  * duplicate-final protection cannot be reset mid-turn.
  */
 export function sharedTurnDeliveryState(): TurnDeliveryState {
-  const runtime = globalThis as DeliveryStateGlobal;
-  runtime.__velanirParticipationGateDeliveryV1 ??= createTurnDeliveryState();
-  return runtime.__velanirParticipationGateDeliveryV1;
+  const key = "__velanirParticipationGateDeliveryV1";
+  const runtime = globalThis as Record<string, unknown>;
+  const existing = runtime[key];
+  if (existing) {
+    return existing as TurnDeliveryState;
+  }
+  const state = createTurnDeliveryState();
+  runtime[key] = state;
+  return state;
 }
 
 function clean(value: unknown): string | undefined {
@@ -68,7 +70,9 @@ function scopedKey(prefix: string, ...values: unknown[]): string | undefined {
  */
 function normalizedTarget(value: unknown): string | undefined {
   const target = normalized(value);
-  if (!target) return undefined;
+  if (!target) {
+    return undefined;
+  }
   return target
     .replace(/^msteams:conversation:/, "")
     .replace(/^(?:conversation|user|channel):/, "")
@@ -83,7 +87,9 @@ function targetMatchesRoute(target: string | undefined, route: DeliveryRoute): b
   const candidate = normalizedTarget(target);
   // A send without a resolvable target cannot be proven unrelated to the
   // active conversation, so it is treated as same-conversation.
-  if (!candidate) return true;
+  if (!candidate) {
+    return true;
+  }
   return [route.conversationId, route.channelId, route.senderId].some(
     (value) => normalizedTarget(value) === candidate,
   );
@@ -107,7 +113,9 @@ export function deliveryScopeForInbound(
   ctx: BeforeDispatchContext,
 ): string | undefined {
   const sessionKey = clean(ctx.sessionKey) ?? clean(event.sessionKey);
-  if (sessionKey) return `session:${sessionKey}`;
+  if (sessionKey) {
+    return `session:${sessionKey}`;
+  }
   const provider = clean(ctx.provider) ?? clean(event.provider) ?? clean(event.surface);
   const conversationId = clean(ctx.conversationId);
   if (provider && conversationId) {
@@ -122,7 +130,9 @@ function deliveryScopeForReply(
   ctx: ReplyPayloadSendingContext,
 ): string | undefined {
   const sessionKey = clean(ctx.sessionKey) ?? clean(event.sessionKey);
-  if (sessionKey) return `session:${sessionKey}`;
+  if (sessionKey) {
+    return `session:${sessionKey}`;
+  }
   const provider = clean(event.channel);
   const conversationId = clean(ctx.conversationId);
   if (provider && conversationId) {
@@ -138,7 +148,9 @@ export function deliveryScopeForTool(ctx: BeforeToolCallContext): string | undef
 
 export function deliveryScopeForMessage(ctx: MessageSendingContext): string | undefined {
   const sessionKey = clean(ctx.sessionKey);
-  if (sessionKey) return `session:${sessionKey}`;
+  if (sessionKey) {
+    return `session:${sessionKey}`;
+  }
   return scopedKey("channel", ctx.channelId, ctx.conversationId);
 }
 
@@ -166,7 +178,9 @@ export function createTurnDeliveryStore(
   return {
     beginTurn(scope: string | undefined, route: DeliveryRoute = {}): boolean {
       prune();
-      if (!scope) return false;
+      if (!scope) {
+        return false;
+      }
       const timestamp = now();
       turns.set(scope, {
         startedAt: timestamp,
@@ -214,7 +228,9 @@ export function createTurnDeliveryStore(
         }
         turn.finalDelivered = true;
         turn.finalEgressPending = true;
-        if (runId) deliveredRuns.set(runId, timestamp);
+        if (runId) {
+          deliveredRuns.set(runId, timestamp);
+        }
         return { action: "allow_final" };
       }
       const canSendProgress =
@@ -247,9 +263,13 @@ export function createTurnDeliveryStore(
     },
     isSameConversationSend(scope: string | undefined, send: DeliverySendCandidate): boolean {
       prune();
-      if (!scope) return false;
+      if (!scope) {
+        return false;
+      }
       const turn = turns.get(scope);
-      if (!turn) return false;
+      if (!turn) {
+        return false;
+      }
       const expectedProvider = routeProvider(turn.route);
       const actualProvider = normalized(send.provider);
       if (expectedProvider && actualProvider && expectedProvider !== actualProvider) {
@@ -259,9 +279,13 @@ export function createTurnDeliveryStore(
     },
     consumeFinalEgress(scope: string | undefined): boolean {
       prune();
-      if (!scope) return false;
+      if (!scope) {
+        return false;
+      }
       const turn = turns.get(scope);
-      if (!turn?.finalEgressPending) return false;
+      if (!turn?.finalEgressPending) {
+        return false;
+      }
       turn.finalEgressPending = false;
       turn.updatedAt = now();
       return true;
