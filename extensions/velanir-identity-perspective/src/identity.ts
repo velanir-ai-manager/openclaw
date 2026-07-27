@@ -23,7 +23,9 @@ function providerUserIds(row: string): Record<string, string[]> {
   for (const match of row.matchAll(pattern)) {
     const provider = match[1]?.toLowerCase();
     const id = match[2]?.trim();
-    if (!provider || !id) continue;
+    if (!provider || !id) {
+      continue;
+    }
     const current = ids[provider] ?? [];
     if (!current.some((value) => value.toLowerCase() === id.toLowerCase())) {
       current.push(id);
@@ -36,19 +38,27 @@ function providerUserIds(row: string): Record<string, string[]> {
 export function parseIdentityLinks(text: string, recipientRole = "manager"): ManagedIdentityLinks {
   const block = managedBlock(text);
   const selfMatch = block.match(/^- (.+?) is you\.\s*$/mu);
-  if (!selfMatch?.[1]) throw new Error("self identity link is missing");
+  if (!selfMatch?.[1]) {
+    throw new Error("self identity link is missing");
+  }
 
   const role = recipientRole.trim().toLowerCase();
   const row = block.split(/\r?\n/u).find((line) => {
-    if (!line.trim().startsWith("|")) return false;
+    if (!line.trim().startsWith("|")) {
+      return false;
+    }
     const cells = line.split("|").map((cell) => cell.trim());
     return cells[2]?.toLowerCase() === role;
   });
-  if (!row) throw new Error(`recipient identity link is missing for role ${recipientRole}`);
+  if (!row) {
+    throw new Error(`recipient identity link is missing for role ${recipientRole}`);
+  }
 
   const cells = row.split("|").map((cell) => cell.trim());
   const recipientName = cells[1];
-  if (!recipientName) throw new Error(`recipient name is missing for role ${recipientRole}`);
+  if (!recipientName) {
+    throw new Error(`recipient name is missing for role ${recipientRole}`);
+  }
 
   return {
     selfName: selfMatch[1].trim(),
@@ -79,9 +89,13 @@ export function matchesManagedRecipient(
       .filter((entry) => entry.channel.trim().toLowerCase() === provider)
       .map((entry) => entry.target),
   ].map(normalize);
-  if (allowed.length === 0) return false;
+  if (allowed.length === 0) {
+    return false;
+  }
   return candidates.some((candidate) => {
-    if (!candidate) return false;
+    if (!candidate) {
+      return false;
+    }
     return allowed.includes(normalize(candidate));
   });
 }

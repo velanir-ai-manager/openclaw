@@ -50,10 +50,13 @@ function normalizeConfig(value: unknown): IdentityPerspectiveConfig {
     : ["msteams"];
   const recipientTargets = Array.isArray(config.recipientTargets)
     ? config.recipientTargets.flatMap((entry) => {
-        if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return [];
-        const candidate = entry as Record<string, unknown>;
-        if (typeof candidate.channel !== "string" || typeof candidate.target !== "string")
+        if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
           return [];
+        }
+        const candidate = entry as Record<string, unknown>;
+        if (typeof candidate.channel !== "string" || typeof candidate.target !== "string") {
+          return [];
+        }
         return [{ channel: candidate.channel, target: candidate.target }];
       })
     : [];
@@ -96,7 +99,9 @@ function perspectiveResult(
     api.logger.warn("identity perspective blocked unresolved third-person outbound text");
     return { cancel: true, reason: "identity_perspective_violation" };
   }
-  if (!result.changed) return undefined;
+  if (!result.changed) {
+    return undefined;
+  }
   api.logger.info("identity perspective corrected outbound text");
   return { content: result.content };
 }
@@ -117,7 +122,9 @@ export default definePluginEntry({
       const event = rawEvent as MessageSendingEvent;
       const ctx = rawContext as MessageContext;
       const channel = channelFor(event, ctx);
-      if (!config.channels.includes(channel) || typeof event.content !== "string") return undefined;
+      if (!config.channels.includes(channel) || typeof event.content !== "string") {
+        return undefined;
+      }
       const result = perspectiveResult(
         event.content,
         identity,
@@ -137,9 +144,13 @@ export default definePluginEntry({
       const ctx = rawContext as MessageContext;
       const channel = channelFor(event, ctx);
       const text = event.payload?.text;
-      if (!config.channels.includes(channel) || typeof text !== "string") return undefined;
+      if (!config.channels.includes(channel) || typeof text !== "string") {
+        return undefined;
+      }
       const result = perspectiveResult(text, identity, config, channel, [ctx.conversationId], api);
-      if (result?.cancel) return { cancel: true, reason: result.reason };
+      if (result?.cancel) {
+        return { cancel: true, reason: result.reason };
+      }
       return result?.content ? { payload: { ...event.payload, text: result.content } } : undefined;
     });
   },

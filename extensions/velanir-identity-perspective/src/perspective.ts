@@ -45,7 +45,9 @@ function collectOutsideDoubleQuotes(text: string): string {
       quoted = false;
       continue;
     }
-    if (!quoted) result += char;
+    if (!quoted) {
+      result += char;
+    }
   }
   return result;
 }
