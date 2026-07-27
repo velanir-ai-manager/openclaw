@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import type { ParticipationGateConfig, RuntimeApi } from "./types.js";
 
 function collectAssistantText(result: unknown): string {
@@ -47,7 +47,9 @@ export async function runEmbeddedClassifierModel(params: {
 
   let tmpDir: string | undefined;
   try {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "velanir-participation-gate-"));
+    tmpDir = await fs.mkdtemp(
+      path.join(resolvePreferredOpenClawTmpDir(), "velanir-participation-gate-"),
+    );
     const runId = `participation-gate-${randomUUID()}`;
     const result = await runEmbeddedAgent({
       sessionId: runId,
