@@ -667,6 +667,10 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/thread-ownership/**"
+"extensions: velanir-identity-perspective":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/velanir-identity-perspective/**"
 "extensions: vllm":
   - changed-files:
       - any-glob-to-any-file:
