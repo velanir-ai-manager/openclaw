@@ -1,0 +1,24 @@
+{
+  "name": "@openclaw/velanir-pending-context",
+  "version": "2026.7.2",
+  "private": true,
+  "description": "OpenClaw plugin that scopes pending responsibility actions to a trusted inbound turn and finalizes scheduling claims from runner receipts.",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*",
+    "openclaw": "workspace:*"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.7.2"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
+  },
+  "openclaw": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}
