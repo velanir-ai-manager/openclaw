@@ -18,7 +18,9 @@ function parseResponsibilitySessionKey(value: unknown):
   | undefined {
   const sessionKey = nonemptyString(value);
   const match = sessionKey?.match(RESPONSIBILITY_SESSION_KEY_PATTERN);
-  if (!match) return undefined;
+  if (!match) {
+    return undefined;
+  }
   return {
     responsibilitySlug: match[1]!,
     scheduleJobId: match[2]!,
@@ -61,8 +63,12 @@ export function surfaceFromContext(ctx: AgentHookContext): LlmUsageSurface {
     lower(ctx.trigger),
     lower(ctx.channelId),
   ].join(" ");
-  if (source.includes("slack")) return "slack";
-  if (source.includes("msteams") || source.includes("teams")) return "msteams";
+  if (source.includes("slack")) {
+    return "slack";
+  }
+  if (source.includes("msteams") || source.includes("teams")) {
+    return "msteams";
+  }
   if (
     source.includes("customer_api") ||
     source.includes("customer-api") ||
@@ -70,10 +76,18 @@ export function surfaceFromContext(ctx: AgentHookContext): LlmUsageSurface {
   ) {
     return "customer_api";
   }
-  if (ctx.jobId || source.includes("cron")) return "cron";
-  if (source.includes("responsibility")) return "responsibility";
-  if (source.includes("manual")) return "manual";
-  if (source.includes("system") || source.includes("heartbeat")) return "system";
+  if (ctx.jobId || source.includes("cron")) {
+    return "cron";
+  }
+  if (source.includes("responsibility")) {
+    return "responsibility";
+  }
+  if (source.includes("manual")) {
+    return "manual";
+  }
+  if (source.includes("system") || source.includes("heartbeat")) {
+    return "system";
+  }
   return "unknown";
 }
 
@@ -102,8 +116,14 @@ export function triggerTypeFromContext(
   ) {
     return "customer_api";
   }
-  if (trigger.includes("manual") || surface === "manual") return "manual";
-  if (trigger.includes("system") || surface === "system") return "system";
-  if (surface === "slack" || surface === "msteams") return "user_message";
+  if (trigger.includes("manual") || surface === "manual") {
+    return "manual";
+  }
+  if (trigger.includes("system") || surface === "system") {
+    return "system";
+  }
+  if (surface === "slack" || surface === "msteams") {
+    return "user_message";
+  }
   return "unknown";
 }

@@ -57,7 +57,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function errorCode(error: unknown): string | undefined {
-  if (!isRecord(error)) return undefined;
+  if (!isRecord(error)) {
+    return undefined;
+  }
   return typeof error.code === "string" ? error.code : undefined;
 }
 
@@ -78,7 +80,9 @@ function normalizeBaseUrl(value: string, key: string): string {
 
 function requiredEnvString(env: NodeJS.ProcessEnv, key: string): string {
   const value = env[key]?.trim();
-  if (!value) throw new Error(`${key} is required.`);
+  if (!value) {
+    throw new Error(`${key} is required.`);
+  }
   return value;
 }
 
@@ -119,11 +123,13 @@ function runtimeStatePaths(stateDir: string) {
   return { root, privateKeyPath: path.join(root, PRIVATE_KEY_FILE) };
 }
 
-async function readJsonFile(pathname: string): Promise<unknown | undefined> {
+async function readJsonFile(pathname: string): Promise<unknown> {
   try {
     return JSON.parse(await fs.readFile(pathname, "utf8")) as unknown;
   } catch (error) {
-    if (errorCode(error) === "ENOENT") return undefined;
+    if (errorCode(error) === "ENOENT") {
+      return undefined;
+    }
     throw new Error(`Failed to read runtime state file ${path.basename(pathname)}.`, {
       cause: error,
     });
@@ -138,7 +144,9 @@ async function createJsonFileExclusive(
   try {
     handle = await fs.open(pathname, "wx", 0o600);
   } catch (error) {
-    if (errorCode(error) === "EEXIST") return "exists";
+    if (errorCode(error) === "EEXIST") {
+      return "exists";
+    }
     throw new Error(`Failed to create runtime state file ${path.basename(pathname)}.`, {
       cause: error,
     });

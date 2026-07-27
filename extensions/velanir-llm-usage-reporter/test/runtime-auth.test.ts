@@ -29,9 +29,18 @@ function headerValue(headers: HeadersInit | undefined, key: string): string {
   return headers?.[key] ?? headers?.[key.toLowerCase()] ?? "";
 }
 
+function requestBodyText(body: BodyInit | null | undefined): string {
+  if (typeof body !== "string") {
+    throw new Error("Expected a string request body.");
+  }
+  return body;
+}
+
 function decodeJwt(value: string): Record<string, unknown> {
   const payload = value.split(".")[1];
-  if (!payload) throw new Error("JWT payload was missing.");
+  if (!payload) {
+    throw new Error("JWT payload was missing.");
+  }
   return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<string, unknown>;
 }
 
@@ -66,7 +75,7 @@ describe("runtime observability auth client", () => {
     const [tokenUrl, tokenInit] = fetchImpl.mock.calls[0] ?? [];
     expect(tokenUrl).toBe("https://api.velanir.test/v1/runtime/token");
 
-    const tokenBody = new URLSearchParams(String(tokenInit?.body));
+    const tokenBody = new URLSearchParams(requestBodyText(tokenInit?.body));
     const clientAssertionPayload = decodeJwt(tokenBody.get("client_assertion") ?? "");
     expect(clientAssertionPayload.aud).toBe("https://issuer.velanir.test/v1/runtime/token");
 

@@ -12,6 +12,13 @@ const authClient: RuntimeAuthClient = {
   },
 };
 
+function requestBodyText(body: BodyInit | null | undefined): string {
+  if (typeof body !== "string") {
+    throw new Error("Expected a string request body.");
+  }
+  return body;
+}
+
 function reporter(
   fetchImpl: typeof fetch,
   now = new Date("2026-06-15T21:00:00.000Z"),
@@ -89,7 +96,7 @@ describe("llm usage reporter", () => {
       DPoP: "proof:POST:https://api.velanir.test/v1/runtime/observability/llm-usage",
     });
 
-    const body = JSON.parse(String(init?.body));
+    const body = JSON.parse(requestBodyText(init?.body));
     expect(body.events).toEqual([
       expect.objectContaining({
         sourceEventId: "openclaw:model_call:call-1",
@@ -173,7 +180,7 @@ describe("llm usage reporter", () => {
 
     await usageReporter.flush();
 
-    const body = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body));
+    const body = JSON.parse(requestBodyText(fetchImpl.mock.calls[0]?.[1]?.body));
     expect(body.events.map((event: { sourceEventId: string }) => event.sourceEventId)).toEqual([
       "openclaw:model_call:call-1",
       "openclaw:model_call:call-2",
@@ -227,7 +234,7 @@ describe("llm usage reporter", () => {
 
     await usageReporter.flush();
 
-    const body = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body));
+    const body = JSON.parse(requestBodyText(fetchImpl.mock.calls[0]?.[1]?.body));
     expect(body.events[0]).toMatchObject({
       estimatedCostUsd: 0.00102,
       inputTokens: 1_000,
@@ -240,7 +247,7 @@ describe("llm usage reporter", () => {
       pricingSourceUrl: "https://aws.amazon.com/bedrock/pricing/",
       pricingModelRef: "amazon-bedrock-mantle/moonshotai.kimi-k2.5",
       inputUsdPerMillionTokens: 0.6,
-      outputUsdPerMillionTokens: 3.0,
+      outputUsdPerMillionTokens: 3,
       cacheInputPricingPolicy: "charged_as_input_tokens",
       billableInputTokens: 1_200,
     });
@@ -268,7 +275,7 @@ describe("llm usage reporter", () => {
 
     await usageReporter.flush();
 
-    const body = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body));
+    const body = JSON.parse(requestBodyText(fetchImpl.mock.calls[0]?.[1]?.body));
     expect(body.events[0]).toMatchObject({
       estimatedCostUsd: 0.000824,
       inputTokens: 1_000,
@@ -376,7 +383,7 @@ describe("llm usage reporter", () => {
 
     expect(fetchImpl).toHaveBeenCalledTimes(2);
     expect(usageReporter.queuedCount()).toBe(0);
-    const secondBody = JSON.parse(String(fetchImpl.mock.calls[1]?.[1]?.body));
+    const secondBody = JSON.parse(requestBodyText(fetchImpl.mock.calls[1]?.[1]?.body));
     expect(secondBody.events).toEqual([
       expect.objectContaining({
         sourceRunId: "valid-run",

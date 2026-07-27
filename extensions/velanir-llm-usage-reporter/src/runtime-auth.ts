@@ -82,7 +82,7 @@ export class RuntimeObservabilityAuthClient implements RuntimeAuthClient {
     const accessToken = await this.accessToken();
     const env = this.env();
     const key = await this.key();
-    const dpopProof = await signDpopProof({
+    const dpopProof = signDpopProof({
       key,
       method,
       htu: dpopHtu(env.tokenIssuer, requestUrl),
@@ -119,12 +119,12 @@ export class RuntimeObservabilityAuthClient implements RuntimeAuthClient {
     const key = await this.key();
     const endpoint = runtimeUrl(env.apiUrl, "/v1/runtime/token");
     const audience = runtimeUrl(env.tokenIssuer, "/v1/runtime/token");
-    const clientAssertion = await signRuntimeAssertion({
+    const clientAssertion = signRuntimeAssertion({
       key,
       runtimeIdentityId: env.runtimeIdentityId,
       audience,
     });
-    const dpopProof = await signDpopProof({
+    const dpopProof = signDpopProof({
       key,
       method: "POST",
       htu: audience,
