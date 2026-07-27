@@ -24,6 +24,7 @@ const BUNDLED_TYPED_HOOK_REGISTRATION_FILES = [
   "extensions/memory-lancedb/index.ts",
   "extensions/onepassword/index.ts",
   "extensions/thread-ownership/index.ts",
+  "extensions/velanir-participation-gate/src/index.ts",
   "extensions/workboard/index.ts",
 ] as const;
 const BUNDLED_TYPED_HOOK_REGISTRATION_GUARDS = {
@@ -38,6 +39,14 @@ const BUNDLED_TYPED_HOOK_REGISTRATION_GUARDS = {
   "extensions/memory-lancedb/index.ts": ["agent_end", "before_prompt_build", "session_end"],
   "extensions/onepassword/index.ts": ["before_tool_call", "tool_result_persist"],
   "extensions/thread-ownership/index.ts": ["message_received", "message_sending"],
+  "extensions/velanir-participation-gate/src/index.ts": [
+    "before_dispatch",
+    "before_tool_call",
+    "message_sending",
+    "message_sent",
+    "reply_payload_sending",
+    "reply_payload_sending",
+  ],
   "extensions/workboard/index.ts": ["subagent_ended"],
 } as const satisfies Record<
   (typeof BUNDLED_TYPED_HOOK_REGISTRATION_FILES)[number],
