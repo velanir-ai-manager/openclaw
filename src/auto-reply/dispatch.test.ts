@@ -163,6 +163,33 @@ describe("withReplyDispatcher", () => {
     expect(order).toEqual(["sendFinalReply", "markComplete", "waitForIdle"]);
   });
 
+  it("forwards config overrides and settles canonical inbound dispatch", async () => {
+    const order: string[] = [];
+    const dispatcher = createDispatcher(order);
+    const configOverride = { agents: {} } as OpenClawConfig;
+    const onSettled = vi.fn(() => {
+      order.push("onSettled");
+    });
+    hoisted.dispatchReplyFromConfigMock.mockResolvedValueOnce({
+      queuedFinal: false,
+      counts: { tool: 0, block: 0, final: 0 },
+    });
+
+    await dispatchInboundMessage({
+      ctx: buildTestCtx(),
+      cfg: {} as OpenClawConfig,
+      dispatcher,
+      configOverride,
+      onSettled,
+    });
+
+    expect(hoisted.dispatchReplyFromConfigMock).toHaveBeenCalledWith(
+      expect.objectContaining({ configOverride }),
+    );
+    expect(onSettled).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(["markComplete", "waitForIdle", "onSettled"]);
+  });
+
   it("emits message.received diagnostics before dispatch", async () => {
     const events: Array<{ type: string; channel?: string; sessionKey?: string; source?: string }> =
       [];

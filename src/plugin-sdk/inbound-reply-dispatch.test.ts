@@ -6,6 +6,15 @@ import type { RecordInboundSession } from "../channels/session.types.js";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 
 const deliverInboundReplyWithMessageSendContext = vi.hoisted(() => vi.fn());
+const dispatchInboundMessage = vi.hoisted(() => vi.fn());
+
+vi.mock("../auto-reply/dispatch.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../auto-reply/dispatch.js")>();
+  return {
+    ...actual,
+    dispatchInboundMessage,
+  };
+});
 
 vi.mock("../channels/turn/kernel.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../channels/turn/kernel.js")>();
@@ -33,6 +42,7 @@ import {
   resolveChannelSourceReplyDeliveryMode,
 } from "./channel-reply-pipeline.js";
 import {
+  dispatchReplyFromConfigWithSettledDispatcher,
   hasFinalInboundReplyDispatch,
   hasVisibleInboundReplyDispatch,
   recordInboundSessionAndDispatchReply,
@@ -46,6 +56,57 @@ function readFirstMockArg(fn: unknown): unknown {
 describe("recordInboundSessionAndDispatchReply", () => {
   beforeEach(() => {
     deliverInboundReplyWithMessageSendContext.mockReset();
+    dispatchInboundMessage.mockReset();
+  });
+
+  it("routes compatibility dispatch through the canonical inbound lifecycle", async () => {
+    const dispatcher = {
+      sendToolResult: vi.fn(() => true),
+      sendBlockReply: vi.fn(() => true),
+      sendFinalReply: vi.fn(() => true),
+      waitForIdle: vi.fn(async () => undefined),
+      getQueuedCounts: vi.fn(() => ({ tool: 0, block: 0, final: 0 })),
+      getFailedCounts: vi.fn(() => ({ tool: 0, block: 0, final: 0 })),
+      markComplete: vi.fn(),
+    };
+    const ctxPayload = {
+      Body: "body",
+      RawBody: "body",
+      CommandBody: "body",
+      From: "sender",
+      To: "target",
+      SessionKey: "agent:main:msteams:direct:peer",
+      Provider: "msteams",
+      Surface: "msteams",
+    } as FinalizedMsgContext;
+    const cfg = {} as OpenClawConfig;
+    const configOverride = { agents: {} } as OpenClawConfig;
+    const onSettled = vi.fn();
+    const result = {
+      queuedFinal: true,
+      counts: { tool: 0, block: 0, final: 1 },
+    };
+    dispatchInboundMessage.mockResolvedValueOnce(result);
+
+    await expect(
+      dispatchReplyFromConfigWithSettledDispatcher({
+        cfg,
+        ctxPayload,
+        dispatcher,
+        onSettled,
+        replyOptions: { runId: "run-compat" },
+        configOverride,
+      }),
+    ).resolves.toBe(result);
+
+    expect(dispatchInboundMessage).toHaveBeenCalledWith({
+      ctx: ctxPayload,
+      cfg,
+      dispatcher,
+      onSettled,
+      replyOptions: { runId: "run-compat" },
+      configOverride,
+    });
   });
 
   it("delegates record and dispatch through the channel turn kernel once", async () => {
