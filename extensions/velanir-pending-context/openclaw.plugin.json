@@ -1,0 +1,139 @@
+{
+  "id": "velanir-pending-context",
+  "activation": {
+    "onStartup": true
+  },
+  "name": "Velanir Pending Responsibility Context",
+  "description": "Injects exact-session pending responsibility context, binds one trusted inbound action, and derives scheduling finals from runner receipts.",
+  "contracts": {
+    "tools": [
+      "responsibility_pending",
+      "responsibility_select_option",
+      "responsibility_reject",
+      "responsibility_change",
+      "responsibility_status"
+    ],
+    "trustedToolPolicies": [
+      "authoritative-pending-action"
+    ]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "dryRun": {
+        "type": "boolean",
+        "default": true
+      },
+      "suppressNonFinalReplies": {
+        "type": "boolean",
+        "default": true
+      },
+      "authorizationTtlMs": {
+        "type": "number",
+        "minimum": 1000,
+        "default": 120000
+      },
+      "maxInjectionChars": {
+        "type": "number",
+        "minimum": 200,
+        "default": 1800
+      },
+      "maxItemsInInjection": {
+        "type": "number",
+        "minimum": 1,
+        "default": 6
+      },
+      "strictUserScope": {
+        "type": "boolean",
+        "default": true
+      },
+      "strictSessionScope": {
+        "type": "boolean",
+        "default": true
+      },
+      "sources": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["responsibilityId", "workspacePath"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "responsibilityId": { "type": "string", "minLength": 1 },
+            "agentId": { "type": "string", "minLength": 1 },
+            "workspacePath": { "type": "string", "minLength": 1 },
+            "command": { "type": "array", "items": { "type": "string" } },
+            "actionCommand": { "type": "array", "items": { "type": "string" } },
+            "timeoutMs": { "type": "number", "minimum": 1, "default": 5000 },
+            "actionTimeoutMs": { "type": "number", "minimum": 1, "default": 50000 },
+            "maxOutputBytes": { "type": "number", "minimum": 1024, "default": 262144 },
+            "channel": { "type": "string", "minLength": 1 },
+            "userId": { "type": "string", "minLength": 1 },
+            "sessionKey": { "type": "string", "minLength": 1 },
+            "accountId": { "type": "string", "minLength": 1 },
+            "conversationId": { "type": "string", "minLength": 1 }
+          }
+        }
+      },
+      "logging": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decisions": { "type": "boolean", "default": true },
+          "includeContent": { "type": "boolean", "default": false }
+        }
+      }
+    }
+  },
+  "uiHints": {
+    "dryRun": {
+      "label": "Dry Run",
+      "help": "Default ON. An explicit false is necessary but not sufficient for effects: the source must also declare a reviewed actionCommand."
+    },
+    "suppressNonFinalReplies": {
+      "label": "Suppress Pending-Turn Non-Final Replies",
+      "help": "Default ON. Cancels only tool/progress payloads for a fresh, exact-session inbound turn that owns pending responsibility context; ordinary chat is unaffected."
+    },
+    "authorizationTtlMs": {
+      "label": "Inbound Authorization Lifetime",
+      "help": "Maximum age of one host-observed inbound message that can authorize one pending action. The message id is never model-supplied."
+    },
+    "maxInjectionChars": {
+      "label": "Injection Size Cap",
+      "help": "Maximum characters for the injected pending-interactions block. Over budget, item lines are dropped with a '+N more' indicator."
+    },
+    "maxItemsInInjection": {
+      "label": "Max Injected Items",
+      "help": "Maximum pending interactions listed inline before collapsing to a count."
+    },
+    "strictUserScope": {
+      "label": "Strict User Scope",
+      "help": "Default ON. Never inject an interaction that lacks a userId into a user-scoped chat (prevents cross-user leakage)."
+    },
+    "strictSessionScope": {
+      "label": "Strict Session Scope",
+      "help": "Default ON. Require every interaction to name the exact destination session or conversation before it can be injected or acted on."
+    },
+    "sources.workspacePath": {
+      "label": "Responsibility Workspace",
+      "help": "Directory the runner is executed in (contains runner.mjs)."
+    },
+    "sources.command": {
+      "label": "Pending Command",
+      "help": "Read-only argv run to source pending interactions. Defaults to node runner.mjs pending."
+    },
+    "sources.actionCommand": {
+      "label": "Authoritative Action Command",
+      "help": "Optional reviewed argv for the runner transaction bridge. There is no default: omit it to keep dry-run-only behavior even when dryRun is false."
+    },
+    "sources.userId": {
+      "label": "Scoped User",
+      "help": "The user these interactions belong to; items are only surfaced/actionable in that user's chat."
+    },
+    "sources.sessionKey": {
+      "label": "Destination Session",
+      "help": "Exact OpenClaw destination session key for this interaction source."
+    }
+  }
+}
