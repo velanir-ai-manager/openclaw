@@ -667,6 +667,10 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/thread-ownership/**"
+"extensions: velanir-llm-usage-reporter":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/velanir-llm-usage-reporter/**"
 "extensions: vllm":
   - changed-files:
       - any-glob-to-any-file:
