@@ -99,5 +99,5 @@ export function selectInteraction(
       candidates: [...candidates],
     };
   }
-  return { ok: true, interaction: index.byId.get(candidates[0])!, autobound: true };
+  return { ok: true, interaction: index.byId.get(candidates[0]!)!, autobound: true };
 }

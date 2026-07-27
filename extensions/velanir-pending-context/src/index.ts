@@ -76,7 +76,6 @@ export { toolScopeFromContext, turnScopeFromContext } from "./read-tools.js";
 
 export const PLUGIN_ID = "velanir-pending-context";
 export const TRUSTED_ACTION_POLICY_ID = "authoritative-pending-action";
-const AUTHORIZATION_NAMESPACE = "velanir-pending-context.authorization";
 
 type InboundMessageEvent = {
   messageId?: string;
