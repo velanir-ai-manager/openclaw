@@ -1,0 +1,24 @@
+{
+  "name": "@openclaw/velanir-identity-perspective",
+  "version": "2026.7.2",
+  "private": true,
+  "description": "OpenClaw delivery plugin for identity-safe first- and second-person perspective",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*",
+    "openclaw": "workspace:*"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.7.2"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
+  },
+  "openclaw": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}

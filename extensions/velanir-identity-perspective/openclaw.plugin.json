@@ -1,0 +1,66 @@
+{
+  "id": "velanir-identity-perspective",
+  "activation": {
+    "onStartup": true
+  },
+  "name": "Velanir Identity Perspective",
+  "description": "Applies managed identity links to outbound first- and verified-recipient second-person perspective.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["identityFile"],
+    "properties": {
+      "identityFile": {
+        "type": "string",
+        "minLength": 1
+      },
+      "recipientRole": {
+        "type": "string",
+        "minLength": 1,
+        "default": "manager"
+      },
+      "channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": ["msteams"]
+      },
+      "recipientTargets": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["channel", "target"],
+          "properties": {
+            "channel": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "default": []
+      }
+    }
+  },
+  "uiHints": {
+    "identityFile": {
+      "label": "Managed Identity File",
+      "help": "Absolute path to a reviewed workspace file containing the managed Identity Links block."
+    },
+    "recipientRole": {
+      "label": "Recipient Relationship",
+      "help": "Identity Links relationship that may be addressed as you after immutable recipient verification."
+    },
+    "recipientTargets": {
+      "label": "Verified Recipient Targets",
+      "help": "Optional channel conversation targets that identify the configured recipient relationship."
+    }
+  }
+}
