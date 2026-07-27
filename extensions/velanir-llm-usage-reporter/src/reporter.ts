@@ -23,6 +23,7 @@ import {
 } from "./usage-math.js";
 
 const MAX_CALLS_PER_KEY = 100;
+type SendBatchResult = "sent" | "retry" | "drop";
 
 function sourceEventId(params: {
   output: LlmOutputEvent;

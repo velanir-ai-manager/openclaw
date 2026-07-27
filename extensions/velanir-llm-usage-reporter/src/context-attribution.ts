@@ -20,8 +20,8 @@ function parseResponsibilitySessionKey(value: unknown):
   const match = sessionKey?.match(RESPONSIBILITY_SESSION_KEY_PATTERN);
   if (!match) return undefined;
   return {
-    responsibilitySlug: match[1],
-    scheduleJobId: match[2],
+    responsibilitySlug: match[1]!,
+    scheduleJobId: match[2]!,
   };
 }
 
