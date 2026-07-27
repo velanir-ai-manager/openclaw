@@ -80,11 +80,15 @@ function clean(value: unknown): string | undefined {
 // prefixes repeatedly and lowercase so the SAME person always compares equal.
 export function cleanIdentity(value: unknown): string | undefined {
   const cleaned = clean(value);
-  if (!cleaned) return undefined;
+  if (!cleaned) {
+    return undefined;
+  }
   let normalized = cleaned;
   for (;;) {
     const next = normalized.replace(/^(?:user|chat|channel|msteams):/i, "");
-    if (next === normalized) return normalized.toLowerCase();
+    if (next === normalized) {
+      return normalized.toLowerCase();
+    }
     normalized = next;
   }
 }
@@ -99,7 +103,9 @@ export function trustedInboundFromHook(
     cleanIdentity(event.senderId) ?? cleanIdentity(ctx.senderId) ?? cleanIdentity(event.from);
   const sessionKey = clean(event.sessionKey) ?? clean(ctx.sessionKey);
   const runId = clean(event.runId) ?? clean(ctx.runId);
-  if (!messageId || !senderId || !sessionKey) return null;
+  if (!messageId || !senderId || !sessionKey) {
+    return null;
+  }
   return {
     messageId,
     senderId,
@@ -118,7 +124,9 @@ export function trustedInboundFromHook(
 export function parseTrustedInboundAuthorization(
   value: unknown,
 ): TrustedInboundAuthorization | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
   const record = value as Record<string, unknown>;
   const messageId = clean(record.messageId);
   const senderId = cleanIdentity(record.senderId);
@@ -127,7 +135,9 @@ export function parseTrustedInboundAuthorization(
     typeof record.receivedAt === "number" && Number.isFinite(record.receivedAt)
       ? record.receivedAt
       : undefined;
-  if (!messageId || !senderId || !sessionKey || receivedAt === undefined) return null;
+  if (!messageId || !senderId || !sessionKey || receivedAt === undefined) {
+    return null;
+  }
   return {
     messageId,
     senderId,
@@ -159,11 +169,15 @@ export function createInboundAuthorizationState(): InboundAuthorizationState {
 // The gateway can load the plugin in more than one module realm; a
 // globalThis-keyed state keeps one-use message semantics across realms.
 export function sharedInboundAuthorizationState(): InboundAuthorizationState {
-  const runtime = globalThis as {
-    __velanirPendingContextAuthorizationV1?: InboundAuthorizationState;
-  };
-  runtime.__velanirPendingContextAuthorizationV1 ??= createInboundAuthorizationState();
-  return runtime.__velanirPendingContextAuthorizationV1;
+  const key = "__velanirPendingContextAuthorizationV1";
+  const runtime = globalThis as Record<string, unknown>;
+  const existing = runtime[key];
+  if (existing) {
+    return existing as InboundAuthorizationState;
+  }
+  const state = createInboundAuthorizationState();
+  runtime[key] = state;
+  return state;
 }
 
 export type InboundAuthorizationStore = {
@@ -188,18 +202,37 @@ export function createInboundAuthorizationStore(
     record && now() - record.receivedAt <= ttlMs ? record : undefined;
 
   const prune = (): void => {
-    for (const [key, record] of byRun) if (!fresh(record)) byRun.delete(key);
-    for (const [key, record] of bySession) if (!fresh(record)) bySession.delete(key);
-    for (const [key, record] of byToolCall) if (!fresh(record)) byToolCall.delete(key);
-    for (const [key, usedAt] of usedMessageIds)
-      if (now() - usedAt > ttlMs) usedMessageIds.delete(key);
+    for (const [key, record] of byRun) {
+      if (!fresh(record)) {
+        byRun.delete(key);
+      }
+    }
+    for (const [key, record] of bySession) {
+      if (!fresh(record)) {
+        bySession.delete(key);
+      }
+    }
+    for (const [key, record] of byToolCall) {
+      if (!fresh(record)) {
+        byToolCall.delete(key);
+      }
+    }
+    for (const [key, usedAt] of usedMessageIds) {
+      if (now() - usedAt > ttlMs) {
+        usedMessageIds.delete(key);
+      }
+    }
   };
 
   return {
     recordTrusted(record: TrustedInboundAuthorization): boolean {
       prune();
-      if (!fresh(record)) return false;
-      if (record.runId) byRun.set(record.runId, record);
+      if (!fresh(record)) {
+        return false;
+      }
+      if (record.runId) {
+        byRun.set(record.runId, record);
+      }
       bySession.set(record.sessionKey, record);
       return true;
     },
@@ -212,13 +245,17 @@ export function createInboundAuthorizationStore(
       prune();
       const toolName = clean(event.toolName) ?? clean(ctx.toolName);
       const toolCallId = clean(event.toolCallId) ?? clean(ctx.toolCallId);
-      if (!toolName || !ACTION_TOOLS.has(toolName) || !toolCallId) return false;
+      if (!toolName || !ACTION_TOOLS.has(toolName) || !toolCallId) {
+        return false;
+      }
       const runId = clean(event.runId) ?? clean(ctx.runId);
       const sessionKey = clean(ctx.sessionKey);
       const record =
         fresh(runId ? byRun.get(runId) : undefined) ??
         fresh(sessionKey ? bySession.get(sessionKey) : undefined);
-      if (!record || (sessionKey && record.sessionKey !== sessionKey)) return false;
+      if (!record || (sessionKey && record.sessionKey !== sessionKey)) {
+        return false;
+      }
       byToolCall.set(toolCallId, record);
       return true;
     },
@@ -227,9 +264,12 @@ export function createInboundAuthorizationStore(
       const record =
         fresh(runId ? byRun.get(runId) : undefined) ??
         fresh(scope.sessionKey ? bySession.get(scope.sessionKey) : undefined);
-      if (!record || !scope.sessionKey || record.sessionKey !== scope.sessionKey) return false;
-      if (!scope.userId || cleanIdentity(record.senderId) !== cleanIdentity(scope.userId))
+      if (!record || !scope.sessionKey || record.sessionKey !== scope.sessionKey) {
         return false;
+      }
+      if (!scope.userId || cleanIdentity(record.senderId) !== cleanIdentity(scope.userId)) {
+        return false;
+      }
       return true;
     },
     consumeDetailed(toolCallId: string, scope: TurnScope): AuthorizationConsumeResult {

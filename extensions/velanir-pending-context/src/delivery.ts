@@ -26,7 +26,9 @@ function clean(value: unknown): string | undefined {
 // before matching so a truthful failure answer is never flagged.
 export function claimsSchedulingSuccess(value: unknown): boolean {
   const text = clean(value)?.toLowerCase();
-  if (!text) return false;
+  if (!text) {
+    return false;
+  }
   const withoutNegativeClaims = text
     .replace(
       /\b(?:no|not)\s+(?:calendar\s+)?(?:meeting|event|invite|booking)\b[^.!?\n]{0,80}\b(?:scheduled|booked|created|sent|confirmed)\b/g,
@@ -63,16 +65,24 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 // AgentToolResultLike envelope ({ content: [{text}], details }).
 export function parseToolOutcome(result: unknown): Record<string, unknown> | undefined {
   const resultRecord = asRecord(result);
-  if (!resultRecord) return undefined;
+  if (!resultRecord) {
+    return undefined;
+  }
   const details = asRecord(resultRecord.details);
-  if (details) return details;
+  if (details) {
+    return details;
+  }
   const content = Array.isArray(resultRecord.content) ? resultRecord.content : [];
   for (const item of content) {
     const text = clean(asRecord(item)?.text);
-    if (!text) continue;
+    if (!text) {
+      continue;
+    }
     try {
       const parsed = asRecord(JSON.parse(text));
-      if (parsed) return parsed;
+      if (parsed) {
+        return parsed;
+      }
     } catch {
       // fall through to the raw record
     }
@@ -113,7 +123,9 @@ export function buildTransactionFailureText(errorCode: string | undefined): stri
 
 export function buildTransactionSuccessText(outcome: Record<string, unknown>): string {
   const explicit = clean(outcome.userVisibleText);
-  if (explicit) return explicit;
+  if (explicit) {
+    return explicit;
+  }
   const result = asRecord(outcome.result);
   const counterpart = clean(result?.counterpart);
   const display = clean(result?.display) ?? clean(result?.start);
@@ -170,9 +182,15 @@ export function createTransactionDeliveryState(): TransactionDeliveryState {
 }
 
 export function sharedTransactionDeliveryState(): TransactionDeliveryState {
-  const runtime = globalThis as { __velanirPendingContextDeliveryV1?: TransactionDeliveryState };
-  runtime.__velanirPendingContextDeliveryV1 ??= createTransactionDeliveryState();
-  return runtime.__velanirPendingContextDeliveryV1;
+  const key = "__velanirPendingContextDeliveryV1";
+  const runtime = globalThis as Record<string, unknown>;
+  const existing = runtime[key];
+  if (existing) {
+    return existing as TransactionDeliveryState;
+  }
+  const state = createTransactionDeliveryState();
+  runtime[key] = state;
+  return state;
 }
 
 export type DeliveryHookEvent = {
@@ -228,10 +246,14 @@ export function createTransactionDeliveryStore(
 
   const prune = (): void => {
     for (const [runId, record] of byRun) {
-      if (now() - record.updatedAt > ttlMs) byRun.delete(runId);
+      if (now() - record.updatedAt > ttlMs) {
+        byRun.delete(runId);
+      }
     }
     for (const [toolCallId, runId] of runByToolCall) {
-      if (!byRun.has(runId)) runByToolCall.delete(toolCallId);
+      if (!byRun.has(runId)) {
+        runByToolCall.delete(toolCallId);
+      }
     }
   };
 
@@ -242,7 +264,9 @@ export function createTransactionDeliveryStore(
     markPendingTurn(runIdValue: unknown, sessionKeyValue: unknown): boolean {
       prune();
       const runId = clean(runIdValue);
-      if (!runId) return false;
+      if (!runId) {
+        return false;
+      }
       const existing = byRun.get(runId);
       byRun.set(runId, {
         runId,
@@ -269,7 +293,9 @@ export function createTransactionDeliveryStore(
       }
       const runId = resolveRun(event, ctx);
       const toolCallId = clean(event.toolCallId) ?? clean(ctx.toolCallId);
-      if (!runId || !toolCallId) return { tracked: false, duplicate: false };
+      if (!runId || !toolCallId) {
+        return { tracked: false, duplicate: false };
+      }
       const existing = byRun.get(runId);
       if (existing?.actionAttempted) {
         return { tracked: true, duplicate: true };
@@ -294,9 +320,13 @@ export function createTransactionDeliveryStore(
       const toolCallId = clean(event.toolCallId) ?? clean(ctx.toolCallId);
       const runId =
         (toolCallId ? runByToolCall.get(toolCallId) : undefined) ?? resolveRun(event, ctx);
-      if (!runId) return false;
+      if (!runId) {
+        return false;
+      }
       const record = byRun.get(runId);
-      if (!record) return false;
+      if (!record) {
+        return false;
+      }
       record.updatedAt = now();
       record.actionFinished = true;
       record.actionSucceeded = false;
@@ -306,13 +336,19 @@ export function createTransactionDeliveryStore(
     finishAction(event: DeliveryHookEvent, ctx: DeliveryHookContext): boolean {
       prune();
       const toolName = clean(event.toolName) ?? clean(ctx.toolName);
-      if (!toolName || !DELIVERY_ACTION_TOOLS.has(toolName)) return false;
+      if (!toolName || !DELIVERY_ACTION_TOOLS.has(toolName)) {
+        return false;
+      }
       const toolCallId = clean(event.toolCallId) ?? clean(ctx.toolCallId);
       const runId =
         (toolCallId ? runByToolCall.get(toolCallId) : undefined) ?? resolveRun(event, ctx);
-      if (!runId) return false;
+      if (!runId) {
+        return false;
+      }
       const record = byRun.get(runId);
-      if (!record) return false;
+      if (!record) {
+        return false;
+      }
       const outcome = parseToolOutcome(event.result);
       const succeeded = event.error === undefined && hasCompleteSchedulingReceipts(outcome);
       record.updatedAt = now();
@@ -343,24 +379,34 @@ export function createTransactionDeliveryStore(
     blockFurtherTool(event: DeliveryHookEvent, ctx: DeliveryHookContext): boolean {
       prune();
       const runId = resolveRun(event, ctx);
-      if (!runId) return false;
+      if (!runId) {
+        return false;
+      }
       const record = byRun.get(runId);
-      if (!record?.actionFinished) return false;
+      if (!record?.actionFinished) {
+        return false;
+      }
       const toolCallId = clean(event.toolCallId) ?? clean(ctx.toolCallId);
       return !toolCallId || runByToolCall.get(toolCallId) !== runId;
     },
     suppressNonFinal(event: DeliveryHookEvent): boolean {
       prune();
-      if (event.kind === "final") return false;
+      if (event.kind === "final") {
+        return false;
+      }
       const runId = clean(event.runId);
       return Boolean(runId && byRun.has(runId));
     },
     expectedFinalText(runIdValue: unknown): string | undefined {
       prune();
       const runId = clean(runIdValue);
-      if (!runId) return undefined;
+      if (!runId) {
+        return undefined;
+      }
       const record = byRun.get(runId);
-      if (!record?.actionAttempted) return undefined;
+      if (!record?.actionAttempted) {
+        return undefined;
+      }
       return record.actionSucceeded
         ? record.userVisibleText
         : (record.userVisibleText ?? buildTransactionFailureText(record.errorCode));
@@ -374,14 +420,18 @@ export function createTransactionDeliveryStore(
     pendingWithoutAction(runIdValue: unknown): boolean {
       prune();
       const runId = clean(runIdValue);
-      if (!runId) return false;
+      if (!runId) {
+        return false;
+      }
       const record = byRun.get(runId);
       return Boolean(record && !record.actionAttempted);
     },
     claimNoActionFailureForSession(sessionKeyValue: unknown): string | undefined {
       prune();
       const sessionKey = clean(sessionKeyValue);
-      if (!sessionKey) return undefined;
+      if (!sessionKey) {
+        return undefined;
+      }
       const record = [...byRun.values()]
         .filter(
           (candidate) =>
@@ -389,8 +439,10 @@ export function createTransactionDeliveryStore(
             !candidate.actionAttempted &&
             !candidate.finalTextClaimed,
         )
-        .sort((left, right) => right.updatedAt - left.updatedAt)[0];
-      if (!record) return undefined;
+        .toSorted((left, right) => right.updatedAt - left.updatedAt)[0];
+      if (!record) {
+        return undefined;
+      }
       record.finalTextClaimed = true;
       record.updatedAt = now();
       return "I didn't complete a scheduling transaction. No calendar event was created or changed.";
@@ -401,11 +453,15 @@ export function createTransactionDeliveryStore(
     ): string | undefined {
       prune();
       const sessionKey = clean(sessionKeyValue);
-      if (!sessionKey) return undefined;
+      if (!sessionKey) {
+        return undefined;
+      }
       const record = [...byRun.values()]
         .filter((candidate) => candidate.sessionKey === sessionKey && !candidate.finalDelivered)
-        .sort((left, right) => right.updatedAt - left.updatedAt)[0];
-      if (!record) return undefined;
+        .toSorted((left, right) => right.updatedAt - left.updatedAt)[0];
+      if (!record) {
+        return undefined;
+      }
       if (record.actionAttempted) {
         return record.actionSucceeded
           ? record.userVisibleText
@@ -418,11 +474,15 @@ export function createTransactionDeliveryStore(
     markFinalDelivered(sessionKeyValue: unknown): boolean {
       prune();
       const sessionKey = clean(sessionKeyValue);
-      if (!sessionKey) return false;
+      if (!sessionKey) {
+        return false;
+      }
       const record = [...byRun.values()]
         .filter((candidate) => candidate.sessionKey === sessionKey)
-        .sort((left, right) => right.updatedAt - left.updatedAt)[0];
-      if (!record) return false;
+        .toSorted((left, right) => right.updatedAt - left.updatedAt)[0];
+      if (!record) {
+        return false;
+      }
       record.finalDelivered = true;
       record.updatedAt = now();
       return true;
@@ -430,16 +490,20 @@ export function createTransactionDeliveryStore(
     finalAlreadyDelivered(sessionKeyValue: unknown): boolean {
       prune();
       const sessionKey = clean(sessionKeyValue);
-      if (!sessionKey) return false;
+      if (!sessionKey) {
+        return false;
+      }
       const latest = [...byRun.values()]
         .filter((candidate) => candidate.sessionKey === sessionKey)
-        .sort((left, right) => right.updatedAt - left.updatedAt)[0];
+        .toSorted((left, right) => right.updatedAt - left.updatedAt)[0];
       return latest?.finalDelivered === true;
     },
     claimFinalTextForSession(sessionKeyValue: unknown): string | undefined {
       prune();
       const sessionKey = clean(sessionKeyValue);
-      if (!sessionKey) return undefined;
+      if (!sessionKey) {
+        return undefined;
+      }
       const record = [...byRun.values()]
         .filter(
           (candidate) =>
@@ -447,8 +511,10 @@ export function createTransactionDeliveryStore(
             candidate.actionAttempted &&
             !candidate.finalTextClaimed,
         )
-        .sort((left, right) => right.updatedAt - left.updatedAt)[0];
-      if (!record) return undefined;
+        .toSorted((left, right) => right.updatedAt - left.updatedAt)[0];
+      if (!record) {
+        return undefined;
+      }
       record.finalTextClaimed = true;
       record.updatedAt = now();
       return record.actionSucceeded
@@ -457,16 +523,26 @@ export function createTransactionDeliveryStore(
     },
     finalizeReply(event: DeliveryHookEvent): { text?: string } | undefined {
       prune();
-      if (event.kind !== "final") return undefined;
+      if (event.kind !== "final") {
+        return undefined;
+      }
       const runId = clean(event.runId);
-      if (!runId) return undefined;
+      if (!runId) {
+        return undefined;
+      }
       const record = byRun.get(runId);
-      if (!record) return undefined;
+      if (!record) {
+        return undefined;
+      }
       byRun.delete(runId);
       for (const [toolCallId, candidateRunId] of runByToolCall) {
-        if (candidateRunId === runId) runByToolCall.delete(toolCallId);
+        if (candidateRunId === runId) {
+          runByToolCall.delete(toolCallId);
+        }
       }
-      if (!record.actionAttempted) return {};
+      if (!record.actionAttempted) {
+        return {};
+      }
       return {
         text: record.actionSucceeded
           ? record.userVisibleText

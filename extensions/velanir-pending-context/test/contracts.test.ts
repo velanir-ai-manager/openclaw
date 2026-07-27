@@ -76,7 +76,9 @@ test("empty pending is explicitly scoped and cannot prove a lifecycle claim", ()
 test("stable option selection accepts a displayed number and returns a dry-run result", () => {
   const result = runSelectOptionTool(buildIndex([item()]), boundSelect, true);
   assert.equal(result.ok, true);
-  if (!result.ok) return;
+  if (!result.ok) {
+    return;
+  }
   assert.equal(result.dryRun, true);
   assert.equal(result.action, "select_option");
   assert.equal(result.accepted.optionId, "slot-1");
@@ -137,7 +139,9 @@ test("reject/change retain stale-version guards after trusted binding", () => {
     true,
   );
   assert.equal(change.ok, true);
-  if (change.ok) assert.equal(change.wouldTransitionTo, "needs_info");
+  if (change.ok) {
+    assert.equal(change.wouldTransitionTo, "needs_info");
+  }
 });
 
 test("multiple pending interactions cannot be auto-bound", () => {
@@ -152,5 +156,7 @@ test("multiple pending interactions cannot be auto-bound", () => {
 test("status stays read-only and exposes the current authoritative state", () => {
   const result = runStatusTool(buildIndex([item()]), { interactionId: "SM-1" });
   assert.equal(result.ok, true);
-  if (result.ok) assert.equal(result.stateVersion, "v1");
+  if (result.ok) {
+    assert.equal(result.stateVersion, "v1");
+  }
 });

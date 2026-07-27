@@ -199,16 +199,25 @@ export function runPendingTool(index: PendingIndex): PendingListOutcome {
   return {
     ok: true,
     pendingCount: items.length,
-    pending: items.map((it) => ({
-      interactionId: it.interactionId,
-      stateVersion: it.stateVersion,
-      stage: it.stage,
-      summary: it.summary,
-      offeredSlots: it.offeredSlots,
-      ...(it.requestedWindowHint ? { requestedWindowHint: it.requestedWindowHint } : {}),
-      ...(it.lastAskedToUser ? { lastAskedToUser: it.lastAskedToUser } : {}),
-      ...(it.note ? { note: it.note } : {}),
-    })),
+    pending: items.map((it) => {
+      const pending: PendingListOutcome["pending"][number] = {
+        interactionId: it.interactionId,
+        stateVersion: it.stateVersion,
+        stage: it.stage,
+        summary: it.summary,
+        offeredSlots: it.offeredSlots,
+      };
+      if (it.requestedWindowHint) {
+        pending.requestedWindowHint = it.requestedWindowHint;
+      }
+      if (it.lastAskedToUser) {
+        pending.lastAskedToUser = it.lastAskedToUser;
+      }
+      if (it.note) {
+        pending.note = it.note;
+      }
+      return pending;
+    }),
     ...(empty
       ? {
           visibility: "authenticated_session" as const,
@@ -303,7 +312,9 @@ export function runSelectOptionTool(
   dryRun: boolean,
 ): DryRunOutcome | ToolError {
   const selected = selectInteraction(index, readParam(params, "interactionId"));
-  if (selected.ok === false) return selected;
+  if (selected.ok === false) {
+    return selected;
+  }
   const interaction = selected.interaction;
   if (!isActionAllowed(interaction, "select_option")) {
     return {

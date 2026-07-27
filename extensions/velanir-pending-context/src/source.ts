@@ -283,13 +283,19 @@ function actionError(error: string, message: string): AuthoritativeActionExecuti
 }
 
 function actionRecordFromOutput(stdout: string | undefined): Record<string, unknown> | undefined {
-  if (!stdout) return undefined;
+  if (!stdout) {
+    return undefined;
+  }
   const parsed = parsePendingEnvelope(stdout);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return undefined;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return undefined;
+  }
   const direct = parsed as Record<string, unknown>;
   const facts = Array.isArray(direct.facts) ? direct.facts : [];
   const fact = facts.find((entry) => {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return false;
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return false;
+    }
     const kind = (entry as { kind?: unknown }).kind;
     return kind === "action" || kind === "transaction" || kind === "result";
   }) as { payload?: unknown } | undefined;
@@ -300,7 +306,9 @@ function actionRecordFromOutput(stdout: string | undefined): Record<string, unkn
 }
 
 function runnerErrorFromRecord(record: Record<string, unknown>): ToolError | undefined {
-  if (record.ok !== false) return undefined;
+  if (record.ok !== false) {
+    return undefined;
+  }
   const error =
     typeof record.error === "string"
       ? record.error
@@ -352,7 +360,9 @@ export function executeAuthoritativeAction(
   const outcome = actionRecordFromOutput(result.stdout);
   if (outcome) {
     const runnerError = runnerErrorFromRecord(outcome);
-    if (runnerError) return { ok: false, error: runnerError };
+    if (runnerError) {
+      return { ok: false, error: runnerError };
+    }
     return { ok: true, outcome };
   }
 

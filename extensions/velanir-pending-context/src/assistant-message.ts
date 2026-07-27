@@ -15,7 +15,9 @@ export function replaceReplyPayloadText(
   event: ReplyPayloadEvent,
   text: string,
 ): { payload: Record<string, unknown> } | undefined {
-  if (!event.payload) return undefined;
+  if (!event.payload) {
+    return undefined;
+  }
   return { payload: { ...event.payload, text } };
 }
 
@@ -24,9 +26,15 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function assistantMessageText(message: Record<string, unknown>): string | undefined {
-  if (message.role !== "assistant") return undefined;
-  if (typeof message.content === "string") return message.content;
-  if (!Array.isArray(message.content)) return undefined;
+  if (message.role !== "assistant") {
+    return undefined;
+  }
+  if (typeof message.content === "string") {
+    return message.content;
+  }
+  if (!Array.isArray(message.content)) {
+    return undefined;
+  }
   return message.content
     .filter(
       (part): part is Record<string, unknown> =>
@@ -40,12 +48,18 @@ export function withAssistantMessageText(
   message: Record<string, unknown>,
   text: string,
 ): Record<string, unknown> {
-  if (typeof message.content === "string") return { ...message, content: text };
-  if (!Array.isArray(message.content)) return message;
+  if (typeof message.content === "string") {
+    return { ...message, content: text };
+  }
+  if (!Array.isArray(message.content)) {
+    return message;
+  }
   let replaced = false;
   const content = message.content.flatMap((part) => {
     if (isRecord(part) && part.type === "text" && typeof part.text === "string") {
-      if (replaced) return [];
+      if (replaced) {
+        return [];
+      }
       replaced = true;
       return [{ ...part, text }];
     }

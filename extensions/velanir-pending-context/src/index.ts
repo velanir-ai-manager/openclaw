@@ -152,9 +152,12 @@ function actionRequestFromOutcome(
       messageId: authorization.messageId,
     },
   };
-  if (outcome.action === "select_option") request.optionId = outcome.accepted.optionId;
-  if (outcome.action === "reject")
+  if (outcome.action === "select_option") {
+    request.optionId = outcome.accepted.optionId;
+  }
+  if (outcome.action === "reject") {
     request.reason = typeof params.reason === "string" ? params.reason : undefined;
+  }
   if (outcome.action === "change") {
     request.requestedWindow =
       typeof params.requestedWindow === "string" ? params.requestedWindow : undefined;
@@ -362,7 +365,9 @@ export function registerPendingContextPlugin(
         return { block: true, blockReason: "pending_context_action_already_finished" };
       }
       const toolName = toolEvent.toolName ?? toolContext.toolName;
-      if (!toolName || !ACTION_TOOLS.has(toolName)) return undefined;
+      if (!toolName || !ACTION_TOOLS.has(toolName)) {
+        return undefined;
+      }
       const action = deliveryStore.beginAction(toolEvent, toolContext);
       if (!action.tracked) {
         return { block: true, blockReason: "pending_context_missing_run_identity" };
@@ -387,11 +392,15 @@ export function registerPendingContextPlugin(
     "agent_turn_prepare",
     (event: unknown, ctx: unknown): AgentTurnPrepareResult | undefined => {
       void (event as AgentTurnPrepareEvent);
-      if (config.sources.length === 0) return undefined;
+      if (config.sources.length === 0) {
+        return undefined;
+      }
       const turnContext = (ctx ?? {}) as AgentTurnPrepareContext;
       const scope = turnScopeFromContext(turnContext);
       const items = scopedItems(config, exec, cache, scope);
-      if (items.length === 0) return undefined;
+      if (items.length === 0) {
+        return undefined;
+      }
 
       // No exact, fresh inbound identity means no quiet-session state. This is
       // why an ordinary chat or a stale transcript cannot become globally final
@@ -403,7 +412,9 @@ export function registerPendingContextPlugin(
         maxChars: config.maxInjectionChars,
         maxItems: config.maxItemsInInjection,
       });
-      if (!block) return undefined;
+      if (!block) {
+        return undefined;
+      }
       if (config.logging.decisions) {
         api.logger?.info?.(
           `[${PLUGIN_ID}] injected ${items.length} pending interaction(s) for session=${scope.sessionKey ?? "?"}`,
@@ -425,7 +436,9 @@ export function registerPendingContextPlugin(
     ) {
       return { cancel: true, reason: "pending_context_suppressed_non_final" };
     }
-    if (reply.kind !== "final" || !sessionKey) return undefined;
+    if (reply.kind !== "final" || !sessionKey) {
+      return undefined;
+    }
     if (deliveryStore.finalAlreadyDelivered(sessionKey)) {
       return { cancel: true, reason: "pending_context_duplicate_final" };
     }
@@ -435,9 +448,13 @@ export function registerPendingContextPlugin(
       claimsSchedulingSuccess(modelText),
     );
     const delivered = deliveryStore.markFinalDelivered(sessionKey);
-    if (replacement) return replaceReplyPayloadText(reply, replacement);
+    if (replacement) {
+      return replaceReplyPayloadText(reply, replacement);
+    }
     // Only mark a final as admitted when it belongs to a tracked pending turn.
-    if (!delivered) return undefined;
+    if (!delivered) {
+      return undefined;
+    }
     return undefined;
   });
 
@@ -445,14 +462,20 @@ export function registerPendingContextPlugin(
     const write = event as PersistedMessageEvent;
     const messageContext = ctx as PersistedMessageContext;
     const sessionKey = write.sessionKey ?? messageContext.sessionKey;
-    if (!sessionKey || !isRecord(write.message)) return undefined;
+    if (!sessionKey || !isRecord(write.message)) {
+      return undefined;
+    }
     const current = assistantMessageText(write.message);
-    if (!current) return undefined;
+    if (!current) {
+      return undefined;
+    }
     const replacement = deliveryStore.authoritativeFinalForSession(
       sessionKey,
       claimsSchedulingSuccess(current),
     );
-    if (!replacement || replacement === current) return undefined;
+    if (!replacement || replacement === current) {
+      return undefined;
+    }
     return { message: withAssistantMessageText(write.message, replacement) };
   });
 }
