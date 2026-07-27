@@ -3,12 +3,9 @@
  * deprecated SDK compatibility facades.
  */
 
-import { withReplyDispatcher } from "../../auto-reply/dispatch.js";
+import { dispatchInboundMessage } from "../../auto-reply/dispatch.js";
 import type { GetReplyOptions } from "../../auto-reply/get-reply-options.types.js";
-import {
-  dispatchReplyFromConfig,
-  type DispatchFromConfigResult,
-} from "../../auto-reply/reply/dispatch-from-config.js";
+import type { DispatchFromConfigResult } from "../../auto-reply/reply/dispatch-from-config.js";
 import type { DispatchReplyWithBufferedBlockDispatcher } from "../../auto-reply/reply/provider-dispatcher.types.js";
 import type { ReplyDispatcher } from "../../auto-reply/reply/reply-dispatcher.types.js";
 import type { FinalizedMsgContext } from "../../auto-reply/templating.js";
@@ -136,7 +133,7 @@ export {
   resolveChannelTurnDispatchCounts as resolveInboundReplyDispatchCounts,
 };
 
-/** Run `dispatchReplyFromConfig` with a dispatcher that always gets its settled callback. */
+/** Run compatibility dispatch through the canonical inbound lifecycle and settled callback. */
 export async function dispatchReplyFromConfigWithSettledDispatcher(params: {
   cfg: OpenClawConfig;
   ctxPayload: FinalizedMsgContext;
@@ -145,17 +142,13 @@ export async function dispatchReplyFromConfigWithSettledDispatcher(params: {
   replyOptions?: ReplyDispatchFromConfigOptions;
   configOverride?: OpenClawConfig;
 }): Promise<DispatchFromConfigResult> {
-  return await withReplyDispatcher({
+  return await dispatchInboundMessage({
+    ctx: params.ctxPayload,
+    cfg: params.cfg,
     dispatcher: params.dispatcher,
     onSettled: params.onSettled,
-    run: () =>
-      dispatchReplyFromConfig({
-        ctx: params.ctxPayload,
-        cfg: params.cfg,
-        dispatcher: params.dispatcher,
-        replyOptions: params.replyOptions,
-        configOverride: params.configOverride,
-      }),
+    replyOptions: params.replyOptions,
+    configOverride: params.configOverride,
   });
 }
 

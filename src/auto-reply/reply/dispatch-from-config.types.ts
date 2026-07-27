@@ -1,7 +1,7 @@
 // Shared type contracts for dispatch-from-config runtime execution.
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import type { SourceReplyDeliveryMode } from "../get-reply-options.types.js";
-import type { FinalizedMsgContext } from "../templating.js";
+import type { FinalizedMsgContext, MsgContext } from "../templating.js";
 import type { FormatAbortReplyText, TryFastAbortFromMessage } from "./abort.runtime-types.js";
 import type { CommandSessionMetadataChange } from "./command-session-metadata.js";
 import type { InternalGetReplyFromConfig, InternalGetReplyOptions } from "./get-reply.types.js";
@@ -30,6 +30,17 @@ export type DispatchFromConfigParams = {
   formatAbortReplyTextResolver?: FormatAbortReplyText;
   /** Optional patch applied to the already loaded config before reply resolution. */
   configOverride?: OpenClawConfig;
+};
+
+export type ReplyPayloadRunState = {
+  runId?: string;
+};
+
+export type DispatchInboundMessageParams = Omit<DispatchFromConfigParams, "ctx"> & {
+  ctx: MsgContext | FinalizedMsgContext;
+  toolsAllow?: string[];
+  onSettled?: () => void | Promise<void>;
+  replyPayloadRunState?: ReplyPayloadRunState;
 };
 
 export type DispatchReplyFromConfig = (

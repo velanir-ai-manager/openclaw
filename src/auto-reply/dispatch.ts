@@ -23,7 +23,11 @@ import { withReplyDispatcher } from "./dispatch-dispatcher.js";
 import { copyReplyPayloadMetadata, setReplyPayloadMetadata } from "./reply-payload.js";
 import type { CommandSessionMetadataChange } from "./reply/command-session-metadata.js";
 import { dispatchReplyFromConfig } from "./reply/dispatch-from-config.js";
-import type { DispatchFromConfigResult } from "./reply/dispatch-from-config.types.js";
+import type {
+  DispatchInboundMessageParams,
+  DispatchFromConfigResult,
+  ReplyPayloadRunState,
+} from "./reply/dispatch-from-config.types.js";
 import type {
   InternalGetReplyFromConfig,
   InternalGetReplyOptions,
@@ -59,10 +63,6 @@ type ForegroundReplyFenceSnapshot = {
   key: string;
   generation: number;
   state: ForegroundReplyFenceState;
-};
-
-type ReplyPayloadRunState = {
-  runId?: string;
 };
 
 const foregroundReplyFenceByKey = new Map<string, ForegroundReplyFenceState>();
@@ -510,16 +510,9 @@ function finalizeDispatchResult(
 }
 
 /** Dispatches one finalized inbound message through reply resolution and queued delivery. */
-export async function dispatchInboundMessage(params: {
-  ctx: MsgContext | FinalizedMsgContext;
-  cfg: OpenClawConfig;
-  dispatcher: ReplyDispatcher;
-  toolsAllow?: string[];
-  replyOptions?: InternalDispatchReplyOptions;
-  replyResolver?: InternalGetReplyFromConfig;
-  onSessionMetadataChanges?: (changes: CommandSessionMetadataChange[]) => void;
-  replyPayloadRunState?: ReplyPayloadRunState;
-}): Promise<DispatchInboundResult> {
+export async function dispatchInboundMessage(
+  params: DispatchInboundMessageParams,
+): Promise<DispatchInboundResult> {
   const replyOptions = applyRuntimeToolsAllow(params.replyOptions, params.toolsAllow);
   const replyPayloadRunState = params.replyPayloadRunState ?? {
     runId: replyOptions?.runId,
@@ -554,6 +547,7 @@ export async function dispatchInboundMessage(params: {
             ctx: finalized,
             cfg: params.cfg,
             dispatcher: params.dispatcher,
+            configOverride: params.configOverride,
             replyOptions: replyOptionsWithRunState,
             replyResolver: params.replyResolver,
             onSessionMetadataChanges: params.onSessionMetadataChanges,
@@ -564,6 +558,7 @@ export async function dispatchInboundMessage(params: {
           attributes: buildDispatchTimelineAttributes(finalized),
         },
       ),
+    onSettled: params.onSettled,
   });
   return finalizeDispatchResult(result, params.dispatcher);
 }
